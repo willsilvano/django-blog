@@ -1,5 +1,7 @@
-from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404, redirect
 
+from simplemooc.courses.models import Enrollment
 from .models import Course
 from .forms import ContactCourse
 
@@ -15,7 +17,6 @@ def index(request):
 
 def details(request, slug):
     course = get_object_or_404(Course, slug=slug)
-
     context = {}
     if request.method == 'POST':
         form = ContactCourse(request.POST)
@@ -31,3 +32,10 @@ def details(request, slug):
 
     template_name = 'courses/details.html'
     return render(request, template_name, context)
+
+
+@login_required
+def enrollment(request, slug):
+    course = get_object_or_404(Course, slug=slug)
+    Enrollment.objects.get_or_create(user=request.user, course=course)
+    return redirect('accounts:dashboard')
