@@ -52,7 +52,7 @@ def undo_enrollment(request, slug):
     if request.method == 'POST':
         enrollment.delete()
         messages.success(request, 'Sua inscrição foi cancelada com sucesso!')
-        redirect('accounts:dashboard')
+        return redirect('accounts:dashboard')
     template_name = 'courses/undo_enrollment.html'
     context = {
         'enrollment': enrollment,
