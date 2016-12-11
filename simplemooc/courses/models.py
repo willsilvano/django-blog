@@ -2,6 +2,8 @@ from django.db import models
 
 from django.conf import settings
 
+from simplemooc.core.mail import send_mail_template
+
 
 class CourseManager(models.Manager):
     def search(self, query):
@@ -87,4 +89,22 @@ class Comment(models.Model):
     class Meta:
         verbose_name = 'Comentário'
         verbose_name_plural = 'Comentários'
-        ordering = ['-created_at']
+        ordering = ['created_at']
+
+
+def post_save_announcement(instance, created, **kwargs):
+    subject = instance.title
+    context = {
+        'announcement': instance
+    }
+    template_name = 'courses/announcement_mail.html'
+    enrollments = Enrollment.objects.filter(
+        course=instance.course, status=1
+    )
+    for enrollment in enrollments:
+        recipient_list = [enrollment.user.email]
+        send_mail_template(subject, template_name, context, recipient_list)
+
+models.signals.post_save.connect(
+    post_save_announcement, sender=Announcement, dispatch_uid='post_save_announcement'
+)

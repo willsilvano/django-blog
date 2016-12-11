@@ -1,6 +1,9 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
+from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITTED
+
+from simplemooc.courses.forms import CommentForm
 from simplemooc.courses.models import Enrollment
 from .models import Course
 from .forms import ContactCourse
@@ -75,3 +78,30 @@ def announcements(request, slug):
         'announcements': course.announcements.all()
     }
     return render(request, template_name, context)
+
+
+@login_required
+def show_announcement(request, slug, pk):
+    course = get_object_or_404(Course, slug=slug)
+    if not request.user.is_staff:
+        enrollment = get_object_or_404(Enrollment, user=request.user, course=course)
+        if not enrollment.is_approved():
+            messages.error(request, 'A sua inscriçao está pendente')
+            redirect('accounts:dashboard')
+    form = CommentForm(request.POST or None)
+    announcement = get_object_or_404(course.announcements.all(), pk=pk)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.user = request.user
+        comment.announcement = announcement
+        comment.save()
+        form = CommentForm()
+        messages.success(request, 'Seu comentário foi enviado com sucesso')
+    template_name = 'courses/show_announcement.html'
+    context = {
+        'course': course,
+        'announcement': announcement,
+        'form': form
+    }
+    return render(request, template_name, context)
+
